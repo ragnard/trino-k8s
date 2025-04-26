@@ -10,16 +10,16 @@ Kubernetes resources as tables.
 
 ## Usage
 
-Configure an instance of the connector:
+Configure an instance of the connector by creating a `${connector-instance-name}.properties` file with:
 
-```kubernetes.properties
+```
 connector.name=kubernetes
 ```
 
 The connector provides a single schema, `resources`, which contains a
 table for each kubernetes resource type (kind/apiVersion).
 
-For example, using the above configuration, you can list all pods using:
+For example, using a file called `kubernetes.properties` with the above configuration, you can list all pods using:
 
 ```
 select * from kubernetes.resources.pods
