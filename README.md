@@ -5,7 +5,7 @@ Kubernetes resources as tables.
 
 ## Installation
 
-- Download plugin ZIP from [latest release](releases/latest)
+- Download plugin ZIP from [latest release](https://github.com/ragnard/trino-k8s/releases/latest)
 - Follow [plugin installation instructions](https://trino.io/docs/current/installation/plugins.html#installation).
 
 ## Usage
