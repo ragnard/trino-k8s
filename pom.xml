@@ -98,12 +98,6 @@
             </dependency>
 
             <dependency>
-                <groupId>io.swagger.parser.v3</groupId>
-                <artifactId>swagger-parser</artifactId>
-                <version>${dep.swagger.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>io.airlift</groupId>
                 <artifactId>jmx-http-rpc</artifactId>
                 <version>${dep.airlift.version}</version>
@@ -113,6 +107,12 @@
                 <groupId>io.airlift</groupId>
                 <artifactId>slice</artifactId>
                 <version>${dep.slice.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger.parser.v3</groupId>
+                <artifactId>swagger-parser</artifactId>
+                <version>${dep.swagger.version}</version>
             </dependency>
 
             <dependency>
