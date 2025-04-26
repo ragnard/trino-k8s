@@ -26,8 +26,10 @@ import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BinaryOperator;
+
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static java.util.Objects.requireNonNull;
 
 public class KubernetesData
 {
@@ -35,7 +37,7 @@ public class KubernetesData
 
     private final ImmutableMap<SchemaTableName, KubernetesResourceTable> tables;
 
-    public final static String RESOURCES_SCHEMA = "resources";
+    public static final String RESOURCES_SCHEMA = "resources";
 
     @Inject
     public KubernetesData(ApiClient apiClient)
@@ -51,7 +53,7 @@ public class KubernetesData
 
     public ConnectorTableHandle getTableHandle(SchemaTableName tableName)
     {
-        return Objects.requireNonNull(this.tables.get(tableName)).toTableHandle();
+        return requireNonNull(this.tables.get(tableName)).toTableHandle();
     }
 
     public KubernetesResourceTable lookupTable(KubernetesTableHandle tableHandle)
@@ -73,7 +75,7 @@ public class KubernetesData
 
             return response.stream()
                     .map(KubernetesResourceTable::from)
-                    .collect(ImmutableMap.toImmutableMap(KubernetesResourceTable::schemaTableName, v -> v, merge));
+                    .collect(toImmutableMap(KubernetesResourceTable::schemaTableName, v -> v, merge));
         }
         catch (ApiException e) {
             throw new RuntimeException(e);

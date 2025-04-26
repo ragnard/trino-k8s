@@ -30,7 +30,9 @@ import io.trino.spi.connector.InMemoryRecordSet;
 import io.trino.spi.connector.RecordSet;
 
 import java.util.List;
-import java.util.Objects;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static java.util.Objects.requireNonNull;
 
 public class KubernetesRecordSetProvider
         implements ConnectorRecordSetProvider
@@ -51,12 +53,12 @@ public class KubernetesRecordSetProvider
             ConnectorTableHandle tableHandle,
             List<? extends ColumnHandle> columnHandles)
     {
-        var table = Objects.requireNonNull(this.kubernetesData.lookupTable((KubernetesTableHandle) tableHandle));
+        var table = requireNonNull(this.kubernetesData.lookupTable((KubernetesTableHandle) tableHandle));
 
         var columns = columnHandles.stream()
                 .map(c -> ((KubernetesColumnHandle) c))
                 .map(table::lookupColumn)
-                .collect(ImmutableList.toImmutableList());
+                .collect(toImmutableList());
 
         var columnMetadata = columns.stream()
                 .map(KubernetesResourceTableColumn::toColumnMetadata)

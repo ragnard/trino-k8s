@@ -34,7 +34,7 @@ public class QueryRunner
             throws Exception
     {
         Logging logger = Logging.initialize();
-        logger.setLevel("pl.net.was", Level.DEBUG);
+        logger.setLevel("com.github.ragnard", Level.DEBUG);
         logger.setLevel("io.trino", Level.INFO);
         logger.setLevel("io.airlift", Level.INFO);
 

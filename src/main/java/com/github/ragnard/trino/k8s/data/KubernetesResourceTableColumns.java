@@ -46,12 +46,11 @@ public class KubernetesResourceTableColumns
     public static final KubernetesResourceTableColumn SELF_LINK = new KubernetesResourceTableColumn("selfLink", VarcharType.VARCHAR, metadataMethod(V1ObjectMeta::getSelfLink));
     public static final KubernetesResourceTableColumn UID = new KubernetesResourceTableColumn("uid", VarcharType.VARCHAR, metadataMethod(V1ObjectMeta::getUid));
 
-
     //
     public static final KubernetesResourceTableColumn METADATA = new KubernetesResourceTableColumn("metadata", VarcharType.VARCHAR, metadata());
     public static final KubernetesResourceTableColumn RESOURCE = new KubernetesResourceTableColumn("resource", VarcharType.VARCHAR, resource());
 
-
+    private KubernetesResourceTableColumns() {}
 
     public static KubernetesResourceTableColumn.ColumnValueFunction resourceMethod(Function<Discovery.APIResource, Object> fn)
     {
@@ -68,11 +67,13 @@ public class KubernetesResourceTableColumns
         return (_, object) -> Optional.ofNullable(fn.apply(object.getMetadata())).map(convert::apply).orElse(null);
     }
 
-    public static KubernetesResourceTableColumn.ColumnValueFunction metadata() {
+    public static KubernetesResourceTableColumn.ColumnValueFunction metadata()
+    {
         return (_, object) -> Optional.ofNullable(object.getRaw().get("metadata")).map(JsonElement::toString).orElse(null);
     }
 
-    public static KubernetesResourceTableColumn.ColumnValueFunction resource() {
+    public static KubernetesResourceTableColumn.ColumnValueFunction resource()
+    {
         return (_, object) -> {
             var copy = object.getRaw().deepCopy();
             copy.remove("metadata");

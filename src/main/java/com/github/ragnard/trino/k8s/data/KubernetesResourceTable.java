@@ -24,8 +24,11 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static java.util.Objects.requireNonNull;
 
 public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableMap<String, KubernetesResourceTableColumn> columns)
 {
@@ -53,7 +56,7 @@ public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableM
                         KubernetesResourceTableColumns.UID,
                         KubernetesResourceTableColumns.METADATA,
                         KubernetesResourceTableColumns.RESOURCE)
-                .collect(ImmutableMap.toImmutableMap(
+                .collect(toImmutableMap(
                         KubernetesResourceTableColumn::name,
                         c -> c));
     }
@@ -85,21 +88,21 @@ public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableM
         return columns.values()
                 .stream()
                 .map(KubernetesResourceTableColumn::toColumnMetadata)
-                .collect(ImmutableList.toImmutableList());
+                .collect(toImmutableList());
     }
 
     public Map<String, ColumnHandle> getColumnHandles()
     {
         return columns.entrySet()
                 .stream()
-                .collect(ImmutableMap.toImmutableMap(
+                .collect(toImmutableMap(
                         Map.Entry::getKey,
                         c -> c.getValue().toColumnHandle()));
     }
 
     public ColumnMetadata getColumnMetadata(KubernetesColumnHandle columnHandle)
     {
-        return Objects.requireNonNull(columns.get(columnHandle.name())).toColumnMetadata();
+        return requireNonNull(columns.get(columnHandle.name())).toColumnMetadata();
     }
 
     public KubernetesResourceTableColumn lookupColumn(KubernetesColumnHandle columnHandle)

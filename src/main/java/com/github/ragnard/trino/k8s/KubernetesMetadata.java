@@ -95,7 +95,6 @@ public class KubernetesMetadata
         return ConnectorMetadata.super.applyFilter(session, handle, constraint);
     }
 
-
     /*@Override
     public Iterator<TableColumnsMetadata> streamTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {

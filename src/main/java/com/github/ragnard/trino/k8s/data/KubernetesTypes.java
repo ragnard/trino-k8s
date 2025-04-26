@@ -35,6 +35,8 @@ public class KubernetesTypes
     public static final ArrayType STRING_ARRAY = new ArrayType(VarcharType.VARCHAR);
     public static final MapType STRING_MAP = new MapType(VarcharType.VARCHAR, VarcharType.VARCHAR, new TypeOperators());
 
+    private KubernetesTypes() {}
+
     public static Block stringArray(List<String> l)
     {
         if (l == null) {
