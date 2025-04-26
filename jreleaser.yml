@@ -2,13 +2,13 @@ project:
   name: trino-k8s
   description: A Trino connector for the Kubernetes API
   license: Apache-2
-  java:
-    groupId: com.github.ragnard
-    version: 23
+  languages:
+    java:
+      version: 23
+      groupId: "com.github.ragnard"
   authors:
     - Ragnar Dahlén
-  extraProperties:
-    inceptionYear: 2025
+  inceptionYear: 2025
 
 files:
   artifacts:
