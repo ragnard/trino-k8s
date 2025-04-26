@@ -11,7 +11,6 @@ import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;
 import io.kubernetes.client.util.generic.options.ListOptions;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,7 +20,7 @@ public class KubernetesData
 {
     private final ApiClient apiClient;
 
-    private ImmutableMap<SchemaTableName, KubernetesResourceTable> tables;
+    private final ImmutableMap<SchemaTableName, KubernetesResourceTable> tables;
 
     public final static String RESOURCES_SCHEMA = "resources";
 
@@ -37,7 +36,7 @@ public class KubernetesData
         return this.tables.keySet().stream().toList();
     }
 
-    public @Nullable ConnectorTableHandle getTableHandle(SchemaTableName tableName)
+    public ConnectorTableHandle getTableHandle(SchemaTableName tableName)
     {
         return Objects.requireNonNull(this.tables.get(tableName)).toTableHandle();
     }

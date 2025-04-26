@@ -29,7 +29,7 @@ public class KubernetesTableHandle
 
     private final SchemaTableName schemaTableName;
 
-    private TupleDomain<ColumnHandle> constraint;
+    private final TupleDomain<ColumnHandle> constraint;
 
     @JsonCreator
     public KubernetesTableHandle(
