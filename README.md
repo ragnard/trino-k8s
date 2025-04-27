@@ -3,6 +3,10 @@
 A connector plugin for [Trino](https://trino.io) that exposes
 Kubernetes resources as tables.
 
+## Status
+
+Not ready for use.
+
 ## Installation
 
 - Download plugin ZIP from [latest release](https://github.com/ragnard/trino-k8s/releases/latest)
