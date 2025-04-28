@@ -17,3 +17,9 @@ files:
 release:
   github:
     owner: ragnard
+
+changelog:
+  enabled: true
+  preset: conventional-commits
+  exclude:
+    - '\[skip ci\]'
