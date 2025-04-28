@@ -68,7 +68,7 @@ public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableM
 
     public KubernetesTableHandle toTableHandle()
     {
-        return new KubernetesTableHandle(schemaTableName(), null);
+        return new KubernetesTableHandle(schemaTableName());
     }
 
     public ConnectorTableMetadata getTableMetadata()

@@ -14,6 +14,7 @@
 package com.github.ragnard.trino.k8s;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.airlift.slice.SizeOf;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.type.Type;
 
@@ -22,4 +23,10 @@ public record KubernetesColumnHandle(
         @JsonProperty("type") Type type
 ) implements ColumnHandle
 {
+    private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesTableHandle.class);
+
+    public long getRetainedSizeInBytes()
+    {
+        return INSTANCE_SIZE;
+    }
 }
