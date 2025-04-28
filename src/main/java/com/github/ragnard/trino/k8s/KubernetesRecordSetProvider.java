@@ -15,24 +15,16 @@
 package com.github.ragnard.trino.k8s;
 
 import com.github.ragnard.trino.k8s.data.KubernetesData;
-import com.github.ragnard.trino.k8s.data.KubernetesResourceTableColumn;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;
 import io.trino.spi.connector.ColumnHandle;
-import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorRecordSetProvider;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorSplit;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
-import io.trino.spi.connector.InMemoryRecordSet;
 import io.trino.spi.connector.RecordSet;
 
 import java.util.List;
-
-import static com.google.common.collect.ImmutableList.toImmutableList;
-import static java.util.Objects.requireNonNull;
 
 public class KubernetesRecordSetProvider
         implements ConnectorRecordSetProvider
@@ -53,35 +45,8 @@ public class KubernetesRecordSetProvider
             ConnectorTableHandle tableHandle,
             List<? extends ColumnHandle> columnHandles)
     {
-        var table = requireNonNull(this.kubernetesData.lookupTable((KubernetesTableHandle) tableHandle));
-
-        var columns = columnHandles.stream()
-                .map(c -> ((KubernetesColumnHandle) c))
-                .map(table::lookupColumn)
-                .collect(toImmutableList());
-
-        var columnMetadata = columns.stream()
-                .map(KubernetesResourceTableColumn::toColumnMetadata)
-                .toList();
-
-        var objects = this.kubernetesData.getObjects(table);
-
-        var records = ImmutableList.<List<?>>builder();
-        //var builder = InMemoryRecordSet.builder(columnMetadata);
-
-        for (DynamicKubernetesObject object : objects) {
-            var values = columns
-                    .stream()
-                    .map(c -> c.getValue(table, object))
-                    .toList();
-
-            //builder.addRow(values);
-            records.add(values);
-        }
-
-        var types = columnMetadata.stream().map(ColumnMetadata::getType).toList();
-        return new InMemoryRecordSet(types, records.build());
-
-        //return builder.build();
+        return kubernetesData.execute(
+                (KubernetesTableHandle) tableHandle,
+                columnHandles.stream().map(h -> (KubernetesColumnHandle) h).toList());
     }
 }

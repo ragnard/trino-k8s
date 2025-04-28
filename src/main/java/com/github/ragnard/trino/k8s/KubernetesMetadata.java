@@ -27,11 +27,17 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTableVersion;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
+import io.trino.spi.connector.LimitApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
+import io.trino.spi.predicate.Domain;
+import io.trino.spi.predicate.TupleDomain;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static com.github.ragnard.trino.k8s.data.KubernetesResourceTableColumns.NAMESPACE;
 
 public class KubernetesMetadata
         implements ConnectorMetadata
@@ -90,9 +96,61 @@ public class KubernetesMetadata
     }
 
     @Override
-    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle handle, Constraint constraint)
+    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle tableHandle, Constraint constraint)
     {
-        return ConnectorMetadata.super.applyFilter(session, handle, constraint);
+        KubernetesTableHandle handle = (KubernetesTableHandle) tableHandle;
+
+        TupleDomain<ColumnHandle> oldDomain = handle.constraint();
+        TupleDomain<ColumnHandle> newDomain = oldDomain.intersect(constraint.getSummary());
+        TupleDomain<ColumnHandle> remainingFilter;
+        if (newDomain.isNone()) {
+            remainingFilter = TupleDomain.all();
+        }
+        else {
+            Map<ColumnHandle, Domain> domains = newDomain.getDomains().orElseThrow();
+
+            Map<ColumnHandle, Domain> supported = new HashMap<>();
+            Map<ColumnHandle, Domain> unsupported = new HashMap<>();
+
+            for (Map.Entry<ColumnHandle, Domain> entry : domains.entrySet()) {
+                var columnHandle = (KubernetesColumnHandle) entry.getKey();
+                var domain = entry.getValue();
+                var columnType = columnHandle.type();
+
+                if (columnHandle.name().equals(NAMESPACE.name()) && columnType.equals(NAMESPACE.type())) {
+                    supported.put(columnHandle, domain);
+                }
+                else {
+                    unsupported.put(columnHandle, domain);
+                }
+            }
+            newDomain = TupleDomain.withColumnDomains(supported);
+            remainingFilter = TupleDomain.withColumnDomains(unsupported);
+        }
+
+        if (oldDomain.equals(newDomain)) {
+            return Optional.empty();
+        }
+
+        handle = handle.withConstraint(newDomain);
+
+        return Optional.of(new ConstraintApplicationResult<>(handle, remainingFilter, constraint.getExpression(), false));
+    }
+
+    @Override
+    public Optional<LimitApplicationResult<ConnectorTableHandle>> applyLimit(ConnectorSession session, ConnectorTableHandle handle, long limit)
+    {
+        KubernetesTableHandle tableHandle = (KubernetesTableHandle) handle;
+
+        if (limit > Integer.MAX_VALUE) {
+            limit = Integer.MAX_VALUE;
+        }
+
+        if (tableHandle.limit().isPresent() && tableHandle.limit().getAsInt() <= limit) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new LimitApplicationResult<>(tableHandle.withLimit((int) limit), true, false));
     }
 
     /*@Override

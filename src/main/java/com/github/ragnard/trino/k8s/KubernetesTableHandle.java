@@ -14,7 +14,6 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.airlift.slice.SizeOf;
 import io.trino.spi.connector.ColumnHandle;
@@ -22,50 +21,39 @@ import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.predicate.TupleDomain;
 
-public class KubernetesTableHandle
-        implements ConnectorTableHandle, Cloneable
+import java.util.OptionalInt;
+
+public record KubernetesTableHandle(
+        @JsonProperty SchemaTableName schemaTableName,
+        @JsonProperty TupleDomain<ColumnHandle> constraint,
+        @JsonProperty OptionalInt limit)
+        implements ConnectorTableHandle/*, Cloneable*/
 {
     private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesTableHandle.class);
 
-    private final SchemaTableName schemaTableName;
-
-    private final TupleDomain<ColumnHandle> constraint;
-
-    @JsonCreator
-    public KubernetesTableHandle(
-            SchemaTableName schemaTableName,
-            TupleDomain<ColumnHandle> constraint)
+    public KubernetesTableHandle(SchemaTableName schemaTableName)
     {
-        this.schemaTableName = schemaTableName;
-        this.constraint = constraint;
+        this(schemaTableName, TupleDomain.all(), OptionalInt.empty());
     }
 
-    @JsonProperty
-    public SchemaTableName getSchemaTableName()
+    public KubernetesTableHandle withConstraint(TupleDomain<ColumnHandle> newConstraint)
     {
-        return schemaTableName;
+        return new KubernetesTableHandle(schemaTableName, newConstraint, limit);
     }
 
-    @JsonProperty("constraint")
-    public TupleDomain<ColumnHandle> getConstraint()
+    public KubernetesTableHandle withLimit(int newLimit)
     {
-        return constraint;
-    }
-
-    @Override
-    public String toString()
-    {
-        return schemaTableName.getTableName();
+        return new KubernetesTableHandle(schemaTableName, constraint, OptionalInt.of(newLimit));
     }
 
     public long getRetainedSizeInBytes()
     {
         return (long) INSTANCE_SIZE
-                + schemaTableName.getRetainedSizeInBytes();
-                //+ constraint.getRetainedSizeInBytes(column -> ((OpenApiColumnHandle) column).getRetainedSizeInBytes())
+                + schemaTableName.getRetainedSizeInBytes()
+                + constraint.getRetainedSizeInBytes(column -> ((KubernetesColumnHandle) column).getRetainedSizeInBytes());
     }
 
-    @Override
+    /*@Override
     public KubernetesTableHandle clone()
     {
         try {
@@ -74,5 +62,5 @@ public class KubernetesTableHandle
         catch (CloneNotSupportedException e) {
             throw new RuntimeException(e);
         }
-    }
+    }*/
 }
