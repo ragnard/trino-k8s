@@ -11,10 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.data;
+package com.github.ragnard.trino.k8s.client;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
 import com.github.ragnard.trino.k8s.KubernetesTableHandle;
+import com.github.ragnard.trino.k8s.tables.KubernetesResourceTable;
+import com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumn;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
@@ -22,9 +24,8 @@ import io.airlift.slice.Slice;
 import io.kubernetes.client.Discovery;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.util.generic.KubernetesApiResponse;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesApi;
-import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesListObject;
 import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;
 import io.kubernetes.client.util.generic.options.ListOptions;
 import io.trino.spi.connector.ColumnHandle;
@@ -39,23 +40,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
 
-import static com.github.ragnard.trino.k8s.data.KubernetesResourceTableColumns.NAMESPACE;
+import static com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumns.NAMESPACE;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.Objects.requireNonNull;
 
-public class KubernetesData
+public class KubernetesClient
 {
     private final ApiClient apiClient;
 
     private final ImmutableMap<SchemaTableName, KubernetesResourceTable> tables;
 
     public static final String RESOURCES_SCHEMA = "resources";
+    private final CoreV1Api coreClient;
 
     @Inject
-    public KubernetesData(ApiClient apiClient)
+    public KubernetesClient(ApiClient apiClient)
     {
         this.apiClient = apiClient;
+        this.coreClient = new CoreV1Api(this.apiClient);
         this.tables = loadTables();
     }
 

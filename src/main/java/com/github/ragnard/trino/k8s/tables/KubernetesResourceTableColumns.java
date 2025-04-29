@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.data;
+package com.github.ragnard.trino.k8s.tables;
 
 import com.google.gson.JsonElement;
 import io.kubernetes.client.Discovery;
@@ -23,8 +23,8 @@ import io.trino.spi.type.VarcharType;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static com.github.ragnard.trino.k8s.data.KubernetesTypes.STRING_ARRAY;
-import static com.github.ragnard.trino.k8s.data.KubernetesTypes.STRING_MAP;
+import static com.github.ragnard.trino.k8s.tables.KubernetesTypes.STRING_ARRAY;
+import static com.github.ragnard.trino.k8s.tables.KubernetesTypes.STRING_MAP;
 
 public class KubernetesResourceTableColumns
 {

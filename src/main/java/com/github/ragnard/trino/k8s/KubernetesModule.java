@@ -14,7 +14,8 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.data.KubernetesData;
+import com.github.ragnard.trino.k8s.client.KubernetesClient;
+import com.github.ragnard.trino.k8s.client.KubernetesLogs;
 import com.google.inject.Binder;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.kubernetes.client.openapi.ApiClient;
@@ -47,8 +48,9 @@ public class KubernetesModule
 
         binder.bind(KubernetesConnector.class).in(SINGLETON);
         binder.bind(KubernetesMetadata.class).in(SINGLETON);
-        binder.bind(KubernetesSplitManager.class).in(SINGLETON);
         binder.bind(KubernetesRecordSetProvider.class).in(SINGLETON);
+        binder.bind(KubernetesSplitManager.class).in(SINGLETON);
+        binder.bind(KubernetesTableFunctionProcessorProvider.class).in(SINGLETON);
         //configBinder(binder).bindConfig(KubernetesConfig.class);
 
         binder.bind(ApiClient.class).toProvider(() -> {
@@ -60,6 +62,7 @@ public class KubernetesModule
             }
         });
 
-        binder.bind(KubernetesData.class).in(SINGLETON);
+        binder.bind(KubernetesClient.class).in(SINGLETON);
+        binder.bind(KubernetesLogs.class).in(SINGLETON);
     }
 }
