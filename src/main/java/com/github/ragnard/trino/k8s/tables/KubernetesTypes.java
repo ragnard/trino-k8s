@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.data;
+package com.github.ragnard.trino.k8s.tables;
 
 import io.trino.spi.block.Block;
 import io.trino.spi.block.BufferedArrayValueBuilder;

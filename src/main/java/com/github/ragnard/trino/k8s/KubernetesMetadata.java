@@ -14,7 +14,7 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.data.KubernetesData;
+import com.github.ragnard.trino.k8s.client.KubernetesClient;
 import com.google.inject.Inject;
 import io.trino.spi.StandardErrorCode;
 import io.trino.spi.TrinoException;
@@ -29,6 +29,8 @@ import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.LimitApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
+import io.trino.spi.connector.TableFunctionApplicationResult;
+import io.trino.spi.function.table.ConnectorTableFunctionHandle;
 import io.trino.spi.predicate.Domain;
 import io.trino.spi.predicate.TupleDomain;
 
@@ -37,29 +39,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.github.ragnard.trino.k8s.data.KubernetesResourceTableColumns.NAMESPACE;
+import static com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumns.NAMESPACE;
 
 public class KubernetesMetadata
         implements ConnectorMetadata
 {
-    private final KubernetesData kubernetesData;
+    private final KubernetesClient kubernetesClient;
 
     @Inject
-    public KubernetesMetadata(KubernetesData kubernetesData/*KubernetesConfig config*/)
+    public KubernetesMetadata(KubernetesClient kubernetesClient/*KubernetesConfig config*/)
     {
-        this.kubernetesData = kubernetesData;
+        this.kubernetesClient = kubernetesClient;
     }
 
     @Override
     public List<String> listSchemaNames(ConnectorSession connectorSession)
     {
-        return List.of(KubernetesData.RESOURCES_SCHEMA);
+        return List.of(KubernetesClient.RESOURCES_SCHEMA);
     }
 
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName)
     {
-        var tables = this.kubernetesData.listTables();
+        var tables = this.kubernetesClient.listTables();
 
         return schemaName
                 .map(s -> tables.stream()
@@ -74,25 +76,31 @@ public class KubernetesMetadata
         if (startVersion.isPresent() || endVersion.isPresent()) {
             throw new TrinoException(StandardErrorCode.NOT_SUPPORTED, "This connector does not support versioned tables");
         }
-        return this.kubernetesData.getTableHandle(tableName);
+        return this.kubernetesClient.getTableHandle(tableName);
     }
 
     @Override
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return this.kubernetesData.lookupTable((KubernetesTableHandle) tableHandle).getTableMetadata();
+        return this.kubernetesClient.lookupTable((KubernetesTableHandle) tableHandle).getTableMetadata();
     }
 
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return this.kubernetesData.lookupTable((KubernetesTableHandle) tableHandle).getColumnHandles();
+        return this.kubernetesClient.lookupTable((KubernetesTableHandle) tableHandle).getColumnHandles();
     }
 
     @Override
     public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
-        return this.kubernetesData.lookupTable((KubernetesTableHandle) tableHandle).getColumnMetadata((KubernetesColumnHandle) columnHandle);
+        return this.kubernetesClient.lookupTable((KubernetesTableHandle) tableHandle).getColumnMetadata((KubernetesColumnHandle) columnHandle);
+    }
+
+    @Override
+    public Optional<TableFunctionApplicationResult<ConnectorTableHandle>> applyTableFunction(ConnectorSession session, ConnectorTableFunctionHandle handle)
+    {
+        return ConnectorMetadata.super.applyTableFunction(session, handle);
     }
 
     @Override
@@ -152,24 +160,4 @@ public class KubernetesMetadata
 
         return Optional.of(new LimitApplicationResult<>(tableHandle.withLimit((int) limit), true, false));
     }
-
-    /*@Override
-    public Iterator<TableColumnsMetadata> streamTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
-    {
-        return spec.getTables().entrySet().stream()
-                .map(entry -> TableColumnsMetadata.forTable(
-                        new SchemaTableName(prefix.getSchema().orElse(""), entry.getKey()),
-                        entry.getValue().stream().map(OpenApiColumn::getMetadata).toList()))
-                .iterator();
-    }
-
-    /*@Override
-    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(
-            ConnectorSession session,
-            ConnectorTableHandle table,
-            Constraint constraint)
-    {
-        OpenApiTableHandle openApiTable = (OpenApiTableHandle) table;
-        return openApiTable.applyFilter(constraint, getColumns(table), domainExpansionLimit);
-    }*/
 }

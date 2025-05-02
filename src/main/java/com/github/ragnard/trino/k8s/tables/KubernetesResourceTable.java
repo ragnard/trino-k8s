@@ -11,10 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.data;
+package com.github.ragnard.trino.k8s.tables;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
 import com.github.ragnard.trino.k8s.KubernetesTableHandle;
+import com.github.ragnard.trino.k8s.client.KubernetesClient;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.kubernetes.client.Discovery;
@@ -63,7 +64,7 @@ public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableM
 
     public SchemaTableName schemaTableName()
     {
-        return new SchemaTableName(KubernetesData.RESOURCES_SCHEMA, resource.getResourcePlural());
+        return new SchemaTableName(KubernetesClient.RESOURCES_SCHEMA, resource.getResourcePlural());
     }
 
     public KubernetesTableHandle toTableHandle()

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.data;
+package com.github.ragnard.trino.k8s.tables;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
 import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;

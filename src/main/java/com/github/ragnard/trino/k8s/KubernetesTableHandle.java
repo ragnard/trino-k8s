@@ -27,7 +27,7 @@ public record KubernetesTableHandle(
         @JsonProperty SchemaTableName schemaTableName,
         @JsonProperty TupleDomain<ColumnHandle> constraint,
         @JsonProperty OptionalInt limit)
-        implements ConnectorTableHandle/*, Cloneable*/
+        implements ConnectorTableHandle
 {
     private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesTableHandle.class);
 
@@ -52,15 +52,4 @@ public record KubernetesTableHandle(
                 + schemaTableName.getRetainedSizeInBytes()
                 + constraint.getRetainedSizeInBytes(column -> ((KubernetesColumnHandle) column).getRetainedSizeInBytes());
     }
-
-    /*@Override
-    public KubernetesTableHandle clone()
-    {
-        try {
-            return (KubernetesTableHandle) super.clone();
-        }
-        catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
-    }*/
 }

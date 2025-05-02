@@ -14,7 +14,7 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.data.KubernetesData;
+import com.github.ragnard.trino.k8s.client.KubernetesClient;
 import com.google.inject.Inject;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorRecordSetProvider;
@@ -29,12 +29,12 @@ import java.util.List;
 public class KubernetesRecordSetProvider
         implements ConnectorRecordSetProvider
 {
-    private final KubernetesData kubernetesData;
+    private final KubernetesClient kubernetesClient;
 
     @Inject
-    public KubernetesRecordSetProvider(KubernetesData kubernetesData)
+    public KubernetesRecordSetProvider(KubernetesClient kubernetesClient)
     {
-        this.kubernetesData = kubernetesData;
+        this.kubernetesClient = kubernetesClient;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class KubernetesRecordSetProvider
             ConnectorTableHandle tableHandle,
             List<? extends ColumnHandle> columnHandles)
     {
-        return kubernetesData.execute(
+        return kubernetesClient.execute(
                 (KubernetesTableHandle) tableHandle,
                 columnHandles.stream().map(h -> (KubernetesColumnHandle) h).toList());
     }

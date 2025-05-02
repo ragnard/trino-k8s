@@ -11,20 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s;
+package com.github.ragnard.trino.k8s.functions;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.airlift.slice.SizeOf;
-import io.trino.spi.connector.ColumnHandle;
-import io.trino.spi.type.Type;
+import io.trino.spi.function.table.ConnectorTableFunctionHandle;
 
-public record KubernetesColumnHandle(
-        @JsonProperty("name") String name,
-        @JsonProperty("type") Type type
-)
-        implements ColumnHandle
+import java.util.Optional;
+import java.util.OptionalInt;
+
+public record PodLogsTableFunctionHandle(
+        @JsonProperty String namespace,
+        @JsonProperty String selector,
+        @JsonProperty Optional<String> container,
+        @JsonProperty OptionalInt limit)
+        implements ConnectorTableFunctionHandle
 {
-    private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesTableHandle.class);
+    private static final long INSTANCE_SIZE = SizeOf.instanceSize(PodLogsTableFunctionHandle.class);
 
     public long getRetainedSizeInBytes()
     {
