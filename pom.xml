@@ -10,7 +10,7 @@
 
     <groupId>com.github.ragnard</groupId>
     <artifactId>trino-k8s</artifactId>
-    <version>0.7</version>
+    <version>0.8-SNAPSHOT</version>
     <packaging>trino-plugin</packaging>
 
     <name>${project.artifactId}</name>
@@ -26,7 +26,7 @@
 
     <scm>
         <developerConnection>scm:git:https://github.com/ragnard/trino-k8s.git</developerConnection>
-        <tag>v0.7</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
