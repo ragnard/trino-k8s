@@ -27,15 +27,29 @@ import io.trino.spi.connector.SchemaTableName;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.Objects.requireNonNull;
 
-public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableMap<String, KubernetesResourceTableColumn> columns)
+public record KubernetesResourceTable(
+        Discovery.APIResource resource,
+        SchemaTableName schemaTableName,
+        ImmutableMap<String, KubernetesResourceTableColumn> columns)
 {
     public static KubernetesResourceTable from(Discovery.APIResource resource)
     {
-        return new KubernetesResourceTable(resource, createColumns(resource));
+        return new KubernetesResourceTable(resource, createSchemaTableName(resource), createColumns(resource));
+    }
+
+    private static SchemaTableName createSchemaTableName(Discovery.APIResource resource)
+    {
+        if (isNullOrEmpty(resource.getGroup())) {
+            return new SchemaTableName(KubernetesClient.RESOURCES_SCHEMA, resource.getResourcePlural());
+        }
+        else {
+            return new SchemaTableName(KubernetesClient.RESOURCES_SCHEMA, resource.getGroup() + "." + resource.getResourcePlural());
+        }
     }
 
     private static ImmutableMap<String, KubernetesResourceTableColumn> createColumns(Discovery.APIResource resource)
@@ -60,11 +74,6 @@ public record KubernetesResourceTable(Discovery.APIResource resource, ImmutableM
                 .collect(toImmutableMap(
                         KubernetesResourceTableColumn::name,
                         c -> c));
-    }
-
-    public SchemaTableName schemaTableName()
-    {
-        return new SchemaTableName(KubernetesClient.RESOURCES_SCHEMA, resource.getResourcePlural());
     }
 
     public KubernetesTableHandle toTableHandle()
