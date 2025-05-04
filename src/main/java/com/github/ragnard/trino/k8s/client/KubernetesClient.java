@@ -24,13 +24,12 @@ import io.airlift.slice.Slice;
 import io.kubernetes.client.Discovery;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesApi;
 import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;
 import io.kubernetes.client.util.generic.options.ListOptions;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
-import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.InMemoryRecordSet;
 import io.trino.spi.connector.RecordSet;
 import io.trino.spi.connector.SchemaTableName;
@@ -38,12 +37,11 @@ import io.trino.spi.predicate.TupleDomain;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BinaryOperator;
 
 import static com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumns.NAMESPACE;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
-import static java.util.Objects.requireNonNull;
+import static io.trino.spi.StandardErrorCode.TABLE_NOT_FOUND;
 
 public class KubernetesClient
 {
@@ -52,13 +50,11 @@ public class KubernetesClient
     private final ImmutableMap<SchemaTableName, KubernetesResourceTable> tables;
 
     public static final String RESOURCES_SCHEMA = "resources";
-    private final CoreV1Api coreClient;
 
     @Inject
     public KubernetesClient(ApiClient apiClient)
     {
         this.apiClient = apiClient;
-        this.coreClient = new CoreV1Api(this.apiClient);
         this.tables = loadTables();
     }
 
@@ -67,14 +63,25 @@ public class KubernetesClient
         return this.tables.keySet().stream().toList();
     }
 
-    public ConnectorTableHandle getTableHandle(SchemaTableName tableName)
+    public Optional<KubernetesResourceTable> lookupTable(KubernetesTableHandle tableHandle)
     {
-        return requireNonNull(this.tables.get(tableName)).toTableHandle();
+        return lookupTable(tableHandle.schemaTableName());
     }
 
-    public KubernetesResourceTable lookupTable(KubernetesTableHandle tableHandle)
+    public Optional<KubernetesResourceTable> lookupTable(SchemaTableName schemaTableName)
     {
-        return this.tables.get(tableHandle.schemaTableName());
+        return Optional.ofNullable(this.tables.get(schemaTableName));
+    }
+
+    public KubernetesResourceTable lookupTableOrThrow(KubernetesTableHandle tableHandle)
+    {
+        return this.lookupTableOrThrow(tableHandle.schemaTableName());
+    }
+
+    public KubernetesResourceTable lookupTableOrThrow(SchemaTableName schemaTableName)
+    {
+        return this.lookupTable(schemaTableName)
+                .orElseThrow(() -> new TrinoException(TABLE_NOT_FOUND, "Table not found: %s".formatted(schemaTableName)));
     }
 
     public ImmutableMap<SchemaTableName, KubernetesResourceTable> loadTables()
@@ -85,13 +92,15 @@ public class KubernetesClient
 
             var response = discovery.findAll();
 
-            BinaryOperator<KubernetesResourceTable> merge = (KubernetesResourceTable t1, KubernetesResourceTable t2) -> {
-                return t1;
-            };
+            /*response
+                    .stream()
+                    .map(KubernetesResourceTable::from)
+                    .
+                    .collect(groupingBy(t -> t.schemaTableName()))*/
 
             return response.stream()
                     .map(KubernetesResourceTable::from)
-                    .collect(toImmutableMap(KubernetesResourceTable::schemaTableName, v -> v, merge));
+                    .collect(toImmutableMap(KubernetesResourceTable::schemaTableName, v -> v));
         }
         catch (ApiException e) {
             throw new RuntimeException(e);
@@ -100,7 +109,7 @@ public class KubernetesClient
 
     public RecordSet execute(KubernetesTableHandle handle, List<KubernetesColumnHandle> columnHandles)
     {
-        var table = requireNonNull(this.lookupTable(handle));
+        var table = this.lookupTableOrThrow(handle);
 
         var columns = columnHandles.stream()
                 .map(table::lookupColumn)

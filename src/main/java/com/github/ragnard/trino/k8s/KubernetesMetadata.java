@@ -15,6 +15,7 @@
 package com.github.ragnard.trino.k8s;
 
 import com.github.ragnard.trino.k8s.client.KubernetesClient;
+import com.github.ragnard.trino.k8s.tables.KubernetesResourceTable;
 import com.google.inject.Inject;
 import io.trino.spi.StandardErrorCode;
 import io.trino.spi.TrinoException;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumns.NAMESPACE;
+import static io.trino.spi.StandardErrorCode.TABLE_NOT_FOUND;
 
 public class KubernetesMetadata
         implements ConnectorMetadata
@@ -76,25 +78,28 @@ public class KubernetesMetadata
         if (startVersion.isPresent() || endVersion.isPresent()) {
             throw new TrinoException(StandardErrorCode.NOT_SUPPORTED, "This connector does not support versioned tables");
         }
-        return this.kubernetesClient.getTableHandle(tableName);
+        return this.kubernetesClient.lookupTableOrThrow(tableName).toTableHandle();
     }
 
     @Override
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return this.kubernetesClient.lookupTable((KubernetesTableHandle) tableHandle).getTableMetadata();
+        return this.kubernetesClient.lookupTableOrThrow((KubernetesTableHandle) tableHandle)
+                .getTableMetadata();
     }
 
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return this.kubernetesClient.lookupTable((KubernetesTableHandle) tableHandle).getColumnHandles();
+        return this.kubernetesClient.lookupTableOrThrow((KubernetesTableHandle) tableHandle)
+                .getColumnHandles();
     }
 
     @Override
     public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
-        return this.kubernetesClient.lookupTable((KubernetesTableHandle) tableHandle).getColumnMetadata((KubernetesColumnHandle) columnHandle);
+        return this.kubernetesClient.lookupTableOrThrow((KubernetesTableHandle) tableHandle)
+                .getColumnMetadata((KubernetesColumnHandle) columnHandle);
     }
 
     @Override
