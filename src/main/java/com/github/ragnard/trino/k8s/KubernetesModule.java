@@ -17,52 +17,48 @@ package com.github.ragnard.trino.k8s;
 import com.github.ragnard.trino.k8s.client.KubernetesClient;
 import com.github.ragnard.trino.k8s.client.KubernetesLogs;
 import com.google.inject.Binder;
+import com.google.inject.Provider;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.ClientBuilder;
-import io.trino.spi.NodeManager;
-import io.trino.spi.type.TypeManager;
 
 import java.io.IOException;
 
 import static com.google.inject.Scopes.SINGLETON;
-import static java.util.Objects.requireNonNull;
+import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class KubernetesModule
         extends AbstractConfigurationAwareModule
 {
-    private final NodeManager nodeManager;
-    private final TypeManager typeManager;
-
-    public KubernetesModule(NodeManager nodeManager, TypeManager typeManager)
-    {
-        this.nodeManager = requireNonNull(nodeManager, "nodeManager is null");
-        this.typeManager = requireNonNull(typeManager, "typeManager is null");
-    }
-
     @Override
     protected void setup(Binder binder)
     {
-        binder.bind(NodeManager.class).toInstance(nodeManager);
-        binder.bind(TypeManager.class).toInstance(typeManager);
+        // configBinder(binder).bindConfig(KubernetesConfig.class);
 
         binder.bind(KubernetesConnector.class).in(SINGLETON);
         binder.bind(KubernetesMetadata.class).in(SINGLETON);
         binder.bind(KubernetesRecordSetProvider.class).in(SINGLETON);
         binder.bind(KubernetesSplitManager.class).in(SINGLETON);
         binder.bind(KubernetesTableFunctionProcessorProvider.class).in(SINGLETON);
-        //configBinder(binder).bindConfig(KubernetesConfig.class);
 
-        binder.bind(ApiClient.class).toProvider(() -> {
+        binder.bind(KubernetesClient.class).in(SINGLETON);
+        binder.bind(KubernetesLogs.class).in(SINGLETON);
+
+        binder.bind(ApiClient.class).toProvider(ApiClientProvider.class);
+    }
+
+    public static class ApiClientProvider
+            implements Provider<ApiClient>
+    {
+        @Override
+        public ApiClient get()
+        {
             try {
-                return ClientBuilder.standard().build();
+                return ClientBuilder.standard(false).build();
             }
             catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
-
-        binder.bind(KubernetesClient.class).in(SINGLETON);
-        binder.bind(KubernetesLogs.class).in(SINGLETON);
+        }
     }
 }

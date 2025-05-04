@@ -21,6 +21,22 @@ Configure a catalog that uses the connector by creating a
 connector.name=kubernetes
 ```
 
+### Client config
+
+The kubernetes client is configured using the standard approach:
+
+- if `KUBECONFIG` env variable is set, use the file pointed to
+- if a `.kube/config` file exists, use that
+- if a `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` file
+  exists, assume we running in a cluster and use injected
+  serviceaccount
+
+So, when running in a cluster you can either:
+
+- supply a config map with a valid kubeconfig file, and set KUBECONFIG env variable to point to that
+- use a serviceaccount
+
+
 ### Resources as tables
 
 The connector provides a `resources`, which contains a table for each

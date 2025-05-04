@@ -16,17 +16,4 @@ package com.github.ragnard.trino.k8s;
 
 public class KubernetesConfig
 {
-  /*  @NotNull
-    public String getSpecLocation()
-    {
-        return specLocation;
-    }
-
-    @Config("spec-location")
-    @ConfigDescription("Path to the OpenAPI spec file")
-    public OpenApiConfig setSpecLocation(String value)
-    {
-        this.specLocation = value;
-        return this;
-    }*/
 }
