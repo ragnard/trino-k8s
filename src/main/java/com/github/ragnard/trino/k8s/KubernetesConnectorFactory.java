@@ -41,9 +41,7 @@ public class KubernetesConnectorFactory
         requireNonNull(requiredConfig, "requiredConfig is null");
 
         Bootstrap app = new Bootstrap(
-                new KubernetesModule(
-                        context.getNodeManager(),
-                        context.getTypeManager()));
+                new KubernetesModule());
 
         Injector injector = app
                 .doNotInitializeLogging()
