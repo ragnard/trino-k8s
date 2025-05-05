@@ -80,12 +80,6 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository }}/trino-k8s
+          IMAGE_NAME=ghcr.io/${{ github.repository }}
           docker build --build-arg=VERSION=$VERSION -t $IMAGE_NAME:$VERSION .
           docker push $IMAGE_NAME:$VERSION
-
-          # # Optionally also tag "latest" for main
-          # if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-          #   docker tag $IMAGE_NAME:$VERSION $IMAGE_NAME:latest
-          #   docker push $IMAGE_NAME:latest
-          # fi
