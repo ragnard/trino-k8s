@@ -1,14 +1,17 @@
-name: Java CI with Maven
+name: Build
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - '**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up the JDK
         uses: actions/setup-java@v4
         with:
@@ -16,16 +19,30 @@ jobs:
           distribution: 'temurin'
           server-id: github
           cache: 'maven'
+
       - name: Configure Problem Matchers
         run: |
           echo "::add-matcher::.github/problem-matcher.json"
           echo "::remove-matcher owner=java::"
+
+      - name: Generate version
+        id: versioning
+        run: |
+          VERSION=$(./version.sh patch)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Build with Maven
-        # env:
-        #   JIRA_SITE: ${{ secrets.JIRA_SITE }}
-        #   JIRA_USER: ${{ secrets.JIRA_USER }}
-        #   JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
-        run: ./mvnw -B package
+        run: ./mvnw -Drevision=$VERSION -B --no-transfer-progress -T2C clean package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: output
+          path: |
+            target/*.jar
+            target/*.zip
+            VERSION
+
       - name: Annotate run
         uses: trinodb/github-actions/action-surefire-report@b63800bedfbc7ab1ff2e5fe7eaecf5ab82ce6a70
         if: always()

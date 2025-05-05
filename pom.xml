@@ -10,7 +10,7 @@
 
     <groupId>com.github.ragnard</groupId>
     <artifactId>trino-k8s</artifactId>
-    <version>0.9-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>trino-plugin</packaging>
 
     <name>${project.artifactId}</name>
@@ -38,12 +38,13 @@
     </distributionManagement>
 
     <properties>
+        <revision>0.0.0-SNAPSHOT</revision>
         <project.build.targetJdk>23</project.build.targetJdk>
         <air.java.version>23</air.java.version>
 
         <air.main.basedir>${project.basedir}</air.main.basedir>
 
-        <air.release.push-changes>true</air.release.push-changes>
+        <air.release.push-changes>false</air.release.push-changes>
 
         <air.check.skip-extended>true</air.check.skip-extended>
         <air.check.skip-license>false</air.check.skip-license>
@@ -147,14 +148,14 @@
         </dependency>
 
         <!--<dependency>
-            <groupId>io.swagger.parser.v3</groupId>
-            <artifactId>swagger-parser</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.yaml</groupId>
-                    <artifactId>snakeyaml</artifactId>
-                </exclusion>
-            </exclusions>
+        <groupId>io.swagger.parser.v3</groupId>
+        <artifactId>swagger-parser</artifactId>
+        <exclusions>
+        <exclusion>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        </exclusion>
+        </exclusions>
         </dependency>-->
 
         <dependency>
@@ -318,32 +319,10 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.1.4</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>3.1.1</version>
-                <configuration>
-                    <scmCommentPrefix>[ci skip]</scmCommentPrefix>
-                    <tagNameFormat>v@{project.version}</tagNameFormat>
-                    <pushChanges>true</pushChanges>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
                 <configuration>
                     <failIfNoTests>false</failIfNoTests>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-scm-plugin</artifactId>
-                <version>2.1.0</version>
-                <configuration>
-                    <pushChanges>true</pushChanges>
                 </configuration>
             </plugin>
             <plugin>
@@ -357,7 +336,6 @@
                     <spiArtifactId>trino-spi</spiArtifactId>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
                 <artifactId>provisio-maven-plugin</artifactId>
