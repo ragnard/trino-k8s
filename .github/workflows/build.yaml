@@ -81,7 +81,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository }}/trino-k8s
-          docker build -t $IMAGE_NAME:$VERSION .
+          docker build --build-arg=VERSION=$VERSION -t $IMAGE_NAME:$VERSION .
           docker push $IMAGE_NAME:$VERSION
 
           # # Optionally also tag "latest" for main
