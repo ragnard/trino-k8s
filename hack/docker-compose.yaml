@@ -1,0 +1,16 @@
+services:
+  trino-server:
+    image: ghcr.io/ragnard/trino-k8s:0.9.4
+    network_mode: host
+    configs:
+      - source: kubernetes.properties
+        target: /etc/trino/catalog/kubernetes.properties
+      - source: kube.config
+        target: /home/trino/.kube/config
+
+configs:
+  kubernetes.properties:
+    content: |
+      connector.name=kubernetes
+  kube.config:
+    file: $HOME/.kube/config
