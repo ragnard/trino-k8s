@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: extractions/setup-just@v3
+        with:
+          just-version: '1.40.0'
+
       - name: Set up the JDK
         uses: actions/setup-java@v4
         with:
@@ -25,23 +29,19 @@ jobs:
           echo "::add-matcher::.github/problem-matcher.json"
           echo "::remove-matcher owner=java::"
 
-      - name: Generate version
-        id: versioning
-        run: |
-          VERSION=$(./version.sh patch)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build with Maven
-        run: ./mvnw -Drevision=$VERSION -B --no-transfer-progress -T2C clean package
+      - name: Log in to ghcr
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: output
-          path: |
-            target/*.jar
-            target/*.zip
-            VERSION
+      - name: Run dev build
+        if: github.ref != 'refs/heads/main'
+        run: just build
+    
+      - name: Run release build
+        if: github.ref == 'refs/heads/main'
+        run: just build-type=release build
 
       - name: Annotate run
         uses: trinodb/github-actions/action-surefire-report@b63800bedfbc7ab1ff2e5fe7eaecf5ab82ce6a70
@@ -92,6 +92,8 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -106,7 +108,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v$VERSION
-          files: target/trino-k8s-$VERSION.zip
+          tag_name: v${{ env.VERSION }}
+          files: target/trino-k8s-${{ env.VERSION}}.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.VERSION }}
