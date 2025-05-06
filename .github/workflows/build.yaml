@@ -6,11 +6,17 @@ on:
       - '**'
 
 jobs:
-  build-plugin:
+  build:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "${GITHUB_ACTOR:-github-actions}"
+          git config user.email "${GITHUB_ACTOR:-github-actions}@users.noreply.github.com"
+
 
       - uses: extractions/setup-just@v3
         with:
@@ -37,9 +43,13 @@ jobs:
 
       - name: Build
         run: just build
-    
+        permissions:
+          packages: write
+
       - name: Release
         if: github.ref == 'refs/heads/main'
+        permissions:
+          contents: write
         run: just release
 
       - name: Annotate run
