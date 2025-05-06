@@ -45,11 +45,14 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build
+        if: github.ref != 'refs/heads/main'
         run: just build
 
       - name: Release
         if: github.ref == 'refs/heads/main'
-        run: just release
+        run: just build-type="release" build release
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Annotate run
         uses: trinodb/github-actions/action-surefire-report@b63800bedfbc7ab1ff2e5fe7eaecf5ab82ce6a70
