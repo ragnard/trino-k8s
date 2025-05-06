@@ -62,8 +62,9 @@ release: require-build-version commit-version create-release
 
 commit-version:
     #!/usr/bin/env bash
+    set -euxo pipefail
+
     version=$(cat {{version-file-build}})
-    echo "Releasing ${version}"
     echo $version > {{version-file}}
 
     # git config user.name "${GITHUB_ACTOR:-github-actions}"
@@ -77,17 +78,16 @@ commit-version:
     git push origin HEAD
     git push origin "v$version"
 
-
 create-release:
     #!/usr/bin/env bash
+    set -euxo pipefail
+
     version=$(cat {{version-file}})
     tag="v${version}"
     github_repo="${GITHUB_REPOSITORY:-}"
     github_token="${GITHUB_TOKEN:-}"
     release_name="Release ${tag}"
     release_body="Automated release."
-
-    echo "📦 Creating GitHub release for tag $TAG..."
 
     request=$(cat <<EOF
     {
@@ -100,13 +100,21 @@ create-release:
     }
     EOF
     )
-
-    echo $request
-
-    RESPONSE=$(curl -s -X POST "https://api.github.com/repos/${github_repo}/releases" \
+    response=$(curl -s -X POST "https://api.github.com/repos/${github_repo}/releases" \
                     -H "Authorization: Bearer ${github_token}" \
                     -H "Accept: application/vnd.github+json" \
                     -d "${request}")
 
-    echo "✅ Release created:"
-    echo "$RESPONSE" | grep "html_url" || echo "$RESPONSE"
+    release_id=$(echo "$response" | jq -r '.id')
+
+    file_path="target/trino-k8s-${VERSION}.zip"
+    file_name=$(basename "$file_path")
+    mime_type=$(file -b --mime-type "$file_path")
+
+    upload_url="https://uploads.github.com/repos/${github_repo}/releases/${release_id}/assets?name=${file_name}"
+
+    upload_response=$(curl -s -X POST "$upload_url" \
+      -H "Authorization: Bearer ${github_token}" \
+      -H "Content-Type: application/zip" \
+      --data-binary @"${file_path}"
+)
