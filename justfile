@@ -107,7 +107,7 @@ create-release:
 
     release_id=$(echo "$response" | jq -r '.id')
 
-    file_path="target/trino-k8s-${VERSION}.zip"
+    file_path="target/trino-k8s-${version}.zip"
     file_name=$(basename "$file_path")
     mime_type=$(file -b --mime-type "$file_path")
 
