@@ -117,4 +117,4 @@ create-release:
       -H "Authorization: Bearer ${github_token}" \
       -H "Content-Type: application/zip" \
       --data-binary @"${file_path}"
-)
+    )
