@@ -16,10 +16,10 @@ build-plugin: prepare
 
 build-image: prepare
     #!/usr/bin/env bash
-    VERSION=$(cat VERSION.build)
-    image="{{image}}:${VERSION}"
+    version=$(cat VERSION.build)
+    image="{{image}}:${version}"
     echo "Building image: $image"
-    docker build --build-arg=VERSION=$VERSION -t ${image} .
+    docker buildx build --push --build-arg=VERSION=$version -t ${image} .
 
 generate-build-version type=version-type:
     #!/usr/bin/env bash
