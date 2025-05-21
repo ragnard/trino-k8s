@@ -11,23 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.functions;
+package com.github.ragnard.trino.k8s.logs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.airlift.slice.SizeOf;
-import io.trino.spi.connector.ConnectorSplit;
+import com.github.ragnard.trino.k8s.KubernetesTableHandle;
 
-public record PodLogsTableFunctionSplit(
-        @JsonProperty PodLogsTableFunctionHandle function,
-        @JsonProperty String pod,
-        @JsonProperty String container)
-        implements ConnectorSplit
+import java.util.OptionalInt;
+
+public record PodLogsTableHandle(
+        @JsonProperty("functionHandle") PodLogsTableFunctionHandle functionHandle,
+        @JsonProperty("limit") OptionalInt limit)
+        implements KubernetesTableHandle
 {
-    public static final long INSTANCE_SIZE = SizeOf.instanceSize(PodLogsTableFunctionSplit.class);
+    public PodLogsTableHandle(PodLogsTableFunctionHandle functionHandle)
+    {
+        this(functionHandle, OptionalInt.empty());
+    }
 
     @Override
-    public long getRetainedSizeInBytes()
+    public KubernetesTableHandle withLimit(int limit)
     {
-        return INSTANCE_SIZE + function.getRetainedSizeInBytes();
+        return new PodLogsTableHandle(functionHandle, OptionalInt.of(limit));
     }
 }

@@ -11,21 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.tables;
+package com.github.ragnard.trino.k8s.logs;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
-import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;
+import com.github.ragnard.trino.k8s.client.KubernetesLogs;
+import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.Type;
 
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
-public record KubernetesResourceTableColumn(String name, Type type, ColumnValueFunction value)
+public record PodLogsTableColumn(String name, Type type, ColumnValueFunction value)
 {
     public interface ColumnValueFunction
-            extends BiFunction<KubernetesResourceTable, DynamicKubernetesObject, Object> {}
+            extends Function<KubernetesLogs.PodLogLine, Object> {}
 
-    public KubernetesColumnHandle toColumnHandle()
+    public ColumnHandle toColumnHandle()
     {
         return new KubernetesColumnHandle(name, type);
     }
@@ -37,8 +38,8 @@ public record KubernetesResourceTableColumn(String name, Type type, ColumnValueF
                 .setType(type).build();
     }
 
-    public Object getValue(KubernetesResourceTable table, DynamicKubernetesObject object)
+    public Object getValue(KubernetesLogs.PodLogLine line)
     {
-        return value.apply(table, object);
+        return value.apply(line);
     }
 }

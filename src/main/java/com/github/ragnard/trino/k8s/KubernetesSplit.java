@@ -14,50 +14,32 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.airlift.slice.SizeOf;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunctionSplit;
+import com.github.ragnard.trino.k8s.resources.ResourceTableSplit;
 import io.trino.spi.HostAddress;
 import io.trino.spi.connector.ConnectorSplit;
 
 import java.util.List;
 
-public class KubernetesSplit
-        implements ConnectorSplit
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = ResourceTableSplit.class),
+        @JsonSubTypes.Type(value = PodLogsTableFunctionSplit.class),
+})
+public interface KubernetesSplit
+        extends ConnectorSplit
 {
-    private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesSplit.class);
-
-    private final KubernetesTableHandle tableHandle;
-
-    @JsonCreator
-    public KubernetesSplit(
-            @JsonProperty("tableHandle") KubernetesTableHandle tableHandle)
-    {
-        this.tableHandle = tableHandle;
-    }
-
-    @Override
-    public boolean isRemotelyAccessible()
-    {
-        return true;
-    }
-
     @Override
     @JsonProperty("addresses")
-    public List<HostAddress> getAddresses()
+    default List<HostAddress> getAddresses()
     {
         return List.of();
     }
 
-    @JsonProperty("tableHandle")
-    public KubernetesTableHandle getTableHandle()
-    {
-        return tableHandle;
-    }
-
     @Override
-    public long getRetainedSizeInBytes()
+    default long getRetainedSizeInBytes()
     {
-        return (long) INSTANCE_SIZE + tableHandle.getRetainedSizeInBytes();
+        return 0;
     }
 }

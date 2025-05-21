@@ -14,8 +14,12 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.client.KubernetesClient;
-import com.github.ragnard.trino.k8s.tables.KubernetesResourceTable;
+import com.github.ragnard.trino.k8s.client.KubernetesResources;
+import com.github.ragnard.trino.k8s.logs.PodLogsTable;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableColumn;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunctionHandle;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableHandle;
+import com.github.ragnard.trino.k8s.resources.ResourceTableHandle;
 import com.google.inject.Inject;
 import io.trino.spi.StandardErrorCode;
 import io.trino.spi.TrinoException;
@@ -32,38 +36,32 @@ import io.trino.spi.connector.LimitApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.TableFunctionApplicationResult;
 import io.trino.spi.function.table.ConnectorTableFunctionHandle;
-import io.trino.spi.predicate.Domain;
-import io.trino.spi.predicate.TupleDomain;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumns.NAMESPACE;
-import static io.trino.spi.StandardErrorCode.TABLE_NOT_FOUND;
-
 public class KubernetesMetadata
         implements ConnectorMetadata
 {
-    private final KubernetesClient kubernetesClient;
+    private final KubernetesResources kubernetesResources;
 
     @Inject
-    public KubernetesMetadata(KubernetesClient kubernetesClient/*KubernetesConfig config*/)
+    public KubernetesMetadata(KubernetesResources kubernetesResources/*KubernetesConfig config*/)
     {
-        this.kubernetesClient = kubernetesClient;
+        this.kubernetesResources = kubernetesResources;
     }
 
     @Override
     public List<String> listSchemaNames(ConnectorSession connectorSession)
     {
-        return List.of(KubernetesClient.RESOURCES_SCHEMA);
+        return List.of(KubernetesResources.RESOURCES_SCHEMA);
     }
 
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName)
     {
-        var tables = this.kubernetesClient.listTables();
+        var tables = this.kubernetesResources.listTables();
 
         return schemaName
                 .map(s -> tables.stream()
@@ -78,34 +76,48 @@ public class KubernetesMetadata
         if (startVersion.isPresent() || endVersion.isPresent()) {
             throw new TrinoException(StandardErrorCode.NOT_SUPPORTED, "This connector does not support versioned tables");
         }
-        return this.kubernetesClient.lookupTableOrThrow(tableName).toTableHandle();
+        return this.kubernetesResources.lookupTableOrThrow(tableName).toTableHandle();
     }
 
     @Override
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return this.kubernetesClient.lookupTableOrThrow((KubernetesTableHandle) tableHandle)
-                .getTableMetadata();
+        return switch ((KubernetesTableHandle) tableHandle) {
+            case ResourceTableHandle h -> this.kubernetesResources.lookupTableOrThrow(h).getTableMetadata();
+            case PodLogsTableHandle _ -> PodLogsTable.TABLE_METADATA;
+            default -> throw new IllegalStateException("Unexpected value: " + tableHandle);
+        };
     }
 
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return this.kubernetesClient.lookupTableOrThrow((KubernetesTableHandle) tableHandle)
-                .getColumnHandles();
+        return switch ((KubernetesTableHandle) tableHandle) {
+            case ResourceTableHandle h -> this.kubernetesResources.lookupTableOrThrow(h).getColumnHandles();
+            default -> throw new IllegalStateException("Unexpected value: " + tableHandle);
+        };
     }
 
     @Override
     public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
-        return this.kubernetesClient.lookupTableOrThrow((KubernetesTableHandle) tableHandle)
-                .getColumnMetadata((KubernetesColumnHandle) columnHandle);
+        return switch ((KubernetesTableHandle) tableHandle) {
+            case ResourceTableHandle h -> this.kubernetesResources.lookupTableOrThrow(h).getColumnMetadata((KubernetesColumnHandle) columnHandle);
+            case PodLogsTableHandle _ -> ((KubernetesColumnHandle) columnHandle).toColumnMetadata();
+            default -> throw new IllegalStateException("Unexpected value: " + tableHandle);
+        };
     }
 
     @Override
     public Optional<TableFunctionApplicationResult<ConnectorTableHandle>> applyTableFunction(ConnectorSession session, ConnectorTableFunctionHandle handle)
     {
-        return ConnectorMetadata.super.applyTableFunction(session, handle);
+        return switch (handle) {
+            case PodLogsTableFunctionHandle h -> {
+                var columns = PodLogsTable.COLUMNS.stream().map(PodLogsTableColumn::toColumnHandle).toList();
+                yield Optional.of(new TableFunctionApplicationResult<>(new PodLogsTableHandle(h), columns));
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + handle);
+        };
     }
 
     @Override
@@ -113,41 +125,7 @@ public class KubernetesMetadata
     {
         KubernetesTableHandle handle = (KubernetesTableHandle) tableHandle;
 
-        TupleDomain<ColumnHandle> oldDomain = handle.constraint();
-        TupleDomain<ColumnHandle> newDomain = oldDomain.intersect(constraint.getSummary());
-        TupleDomain<ColumnHandle> remainingFilter;
-        if (newDomain.isNone()) {
-            remainingFilter = TupleDomain.all();
-        }
-        else {
-            Map<ColumnHandle, Domain> domains = newDomain.getDomains().orElseThrow();
-
-            Map<ColumnHandle, Domain> supported = new HashMap<>();
-            Map<ColumnHandle, Domain> unsupported = new HashMap<>();
-
-            for (Map.Entry<ColumnHandle, Domain> entry : domains.entrySet()) {
-                var columnHandle = (KubernetesColumnHandle) entry.getKey();
-                var domain = entry.getValue();
-                var columnType = columnHandle.type();
-
-                if (columnHandle.name().equals(NAMESPACE.name()) && columnType.equals(NAMESPACE.type())) {
-                    supported.put(columnHandle, domain);
-                }
-                else {
-                    unsupported.put(columnHandle, domain);
-                }
-            }
-            newDomain = TupleDomain.withColumnDomains(supported);
-            remainingFilter = TupleDomain.withColumnDomains(unsupported);
-        }
-
-        if (oldDomain.equals(newDomain)) {
-            return Optional.empty();
-        }
-
-        handle = handle.withConstraint(newDomain);
-
-        return Optional.of(new ConstraintApplicationResult<>(handle, remainingFilter, constraint.getExpression(), false));
+        return handle.applyFilter(constraint);
     }
 
     @Override
