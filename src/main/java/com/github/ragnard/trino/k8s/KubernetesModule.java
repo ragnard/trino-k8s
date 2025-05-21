@@ -14,7 +14,7 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.client.KubernetesClient;
+import com.github.ragnard.trino.k8s.client.KubernetesResources;
 import com.github.ragnard.trino.k8s.client.KubernetesLogs;
 import com.google.inject.Binder;
 import com.google.inject.Provider;
@@ -25,7 +25,6 @@ import io.kubernetes.client.util.ClientBuilder;
 import java.io.IOException;
 
 import static com.google.inject.Scopes.SINGLETON;
-import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class KubernetesModule
         extends AbstractConfigurationAwareModule
@@ -39,9 +38,8 @@ public class KubernetesModule
         binder.bind(KubernetesMetadata.class).in(SINGLETON);
         binder.bind(KubernetesRecordSetProvider.class).in(SINGLETON);
         binder.bind(KubernetesSplitManager.class).in(SINGLETON);
-        binder.bind(KubernetesTableFunctionProcessorProvider.class).in(SINGLETON);
 
-        binder.bind(KubernetesClient.class).in(SINGLETON);
+        binder.bind(KubernetesResources.class).in(SINGLETON);
         binder.bind(KubernetesLogs.class).in(SINGLETON);
 
         binder.bind(ApiClient.class).toProvider(ApiClientProvider.class);

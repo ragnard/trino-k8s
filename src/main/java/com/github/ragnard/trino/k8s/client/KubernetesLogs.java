@@ -13,7 +13,11 @@
  */
 package com.github.ragnard.trino.k8s.client;
 
-import com.github.ragnard.trino.k8s.functions.PodLogsTableFunction;
+import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
+import com.github.ragnard.trino.k8s.logs.PodLogsTable;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableColumn;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunctionSplit;
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.openapi.ApiClient;
@@ -21,12 +25,10 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.trino.spi.Page;
-import io.trino.spi.PageBuilder;
 import io.trino.spi.TrinoException;
+import io.trino.spi.connector.InMemoryRecordSet;
+import io.trino.spi.connector.RecordSet;
 import io.trino.spi.type.LongTimestampWithTimeZone;
-import io.trino.spi.type.TimestampWithTimeZoneType;
-import io.trino.spi.type.VarcharType;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
@@ -37,7 +39,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -149,27 +150,22 @@ public class KubernetesLogs
                 .anyMatch(r -> uids.contains(r.getUid()));
     }
 
-    public Page getLogs(String namespace, String pod, String container, OptionalInt limit)
+    public RecordSet getLogs(PodLogsTableFunctionSplit split, List<KubernetesColumnHandle> columnHandles)
     {
-        PageBuilder builder = new PageBuilder(PodLogsTableFunction.COLUMN_TYPES);
+        var columns = columnHandles.stream().map(PodLogsTable::lookup).toList();
+        var types = columns.stream().map(PodLogsTableColumn::type).toList();
 
-        consumePodLog(namespace, pod, container, limit.isPresent() ? limit.getAsInt() : null, line -> {
-            VarcharType.VARCHAR.writeString(builder.getBlockBuilder(0), pod);
+        var records = ImmutableList.<List<?>>builder();
 
-            if (container != null) {
-                VarcharType.VARCHAR.writeString(builder.getBlockBuilder(1), container);
-            }
-            else {
-                builder.getBlockBuilder(1).appendNull();
-            }
+        consumePodLog(split.namespace(), split.pod(), split.container(), split.limitOrNull(), line -> {
+            var record = columns.stream()
+                    .map(c -> c.getValue(line))
+                    .toList();
 
-            TimestampWithTimeZoneType.TIMESTAMP_TZ_NANOS.writeObject(builder.getBlockBuilder(2), toTimestampWithZone(line.timestamp()));
-
-            VarcharType.VARCHAR.writeString(builder.getBlockBuilder(3), removeAnsiCodes(line.log()));
-            builder.declarePosition();
+            records.add(record);
         });
 
-        return builder.build();
+        return new InMemoryRecordSet(types, records.build());
     }
 
     private void consumePodLog(String namespace, String name, String container, Integer limit, Consumer<PodLogLine> consumer)
@@ -196,7 +192,7 @@ public class KubernetesLogs
                 try (var reader = new BufferedReader(new InputStreamReader(Optional.ofNullable(response.body())
                         .map(ResponseBody::byteStream)
                         .orElseThrow(() -> new TrinoException(GENERIC_INTERNAL_ERROR, "Pod log response empty body"))))) {
-                    reader.lines().map(PodLogLine::parse).forEach(consumer);
+                    reader.lines().map(l -> PodLogLine.from(namespace, container, l)).forEach(consumer);
                 }
             }
             catch (IOException e) {
@@ -212,15 +208,15 @@ public class KubernetesLogs
         }
     }
 
-    public record PodLogLine(OffsetDateTime timestamp, String log)
+    public record PodLogLine(String namespace, String container, OffsetDateTime timestamp, String log)
     {
-        public static PodLogLine parse(String line)
+        public static PodLogLine from(String namespace, String container, String line)
         {
             var parts = line.split(" ", 2);
             var timestamp = OffsetDateTime.parse(parts[0], DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             var log = parts[1];
 
-            return new PodLogLine(timestamp, log);
+            return new PodLogLine(namespace, container, timestamp, log);
         }
     }
 

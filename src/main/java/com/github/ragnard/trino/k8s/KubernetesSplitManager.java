@@ -15,8 +15,10 @@
 package com.github.ragnard.trino.k8s;
 
 import com.github.ragnard.trino.k8s.client.KubernetesLogs;
-import com.github.ragnard.trino.k8s.functions.PodLogsTableFunctionHandle;
-import com.github.ragnard.trino.k8s.functions.PodLogsTableFunctionSplit;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunctionSplit;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableHandle;
+import com.github.ragnard.trino.k8s.resources.ResourceTableHandle;
+import com.github.ragnard.trino.k8s.resources.ResourceTableSplit;
 import com.google.inject.Inject;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
@@ -28,7 +30,6 @@ import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.DynamicFilter;
 import io.trino.spi.connector.FixedSplitSource;
-import io.trino.spi.function.table.ConnectorTableFunctionHandle;
 
 import java.util.List;
 import java.util.Objects;
@@ -48,21 +49,27 @@ public class KubernetesSplitManager
     @Override
     public ConnectorSplitSource getSplits(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorTableHandle table, DynamicFilter dynamicFilter, Constraint constraint)
     {
-        return new FixedSplitSource(new KubernetesSplit((KubernetesTableHandle) table));
+        return switch ((KubernetesTableHandle) table) {
+            case ResourceTableHandle h -> new FixedSplitSource(new ResourceTableSplit(h));
+            case PodLogsTableHandle h -> getSplits(h);
+            default -> throw new IllegalStateException("Unexpected value: " + table);
+        };
     }
 
-    @Override
-    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorTableFunctionHandle functionHandle)
+    public ConnectorSplitSource getSplits(PodLogsTableHandle tableHandle)
     {
-        var handle = (PodLogsTableFunctionHandle) functionHandle;
-
-        var pods = this.kubernetesLogs.getPods(handle.namespace(), handle.selector());
+        var functionHandle = tableHandle.functionHandle();
+        var pods = this.kubernetesLogs.getPods(functionHandle.namespace(), functionHandle.selector());
 
         var splits = pods.stream()
                 .flatMap(pod -> Optional.ofNullable(pod).map(V1Pod::getSpec).map(V1PodSpec::getContainers).orElse(List.of())
                         .stream()
-                        .map(c -> new PodLogsTableFunctionSplit(handle, Objects.requireNonNull(pod.getMetadata()).getName(), c.getName())))
-                .filter(split -> handle.container().map(c -> c.equals(split.container())).orElse(true))
+                        .map(c -> new PodLogsTableFunctionSplit(
+                                functionHandle.namespace(),
+                                Objects.requireNonNull(pod.getMetadata()).getName(),
+                                c.getName(),
+                                tableHandle.limit())))
+                .filter(split -> functionHandle.container().map(c -> c.equals(split.container())).orElse(true))
                 .toList();
 
         return new FixedSplitSource(splits);

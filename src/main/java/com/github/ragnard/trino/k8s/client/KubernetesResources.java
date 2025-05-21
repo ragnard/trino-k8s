@@ -14,9 +14,10 @@
 package com.github.ragnard.trino.k8s.client;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
+import com.github.ragnard.trino.k8s.resources.ResourceTableHandle;
 import com.github.ragnard.trino.k8s.KubernetesTableHandle;
-import com.github.ragnard.trino.k8s.tables.KubernetesResourceTable;
-import com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumn;
+import com.github.ragnard.trino.k8s.resources.ResourceTable;
+import com.github.ragnard.trino.k8s.resources.ResourceTableColumn;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
@@ -38,21 +39,21 @@ import io.trino.spi.predicate.TupleDomain;
 import java.util.List;
 import java.util.Optional;
 
-import static com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumns.NAMESPACE;
+import static com.github.ragnard.trino.k8s.resources.ResourceTableColumns.NAMESPACE;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static io.trino.spi.StandardErrorCode.TABLE_NOT_FOUND;
 
-public class KubernetesClient
+public class KubernetesResources
 {
     private final ApiClient apiClient;
 
-    private final ImmutableMap<SchemaTableName, KubernetesResourceTable> tables;
+    private final ImmutableMap<SchemaTableName, ResourceTable> tables;
 
     public static final String RESOURCES_SCHEMA = "resources";
 
     @Inject
-    public KubernetesClient(ApiClient apiClient)
+    public KubernetesResources(ApiClient apiClient)
     {
         this.apiClient = apiClient;
         this.tables = loadTables();
@@ -63,28 +64,28 @@ public class KubernetesClient
         return this.tables.keySet().stream().toList();
     }
 
-    public Optional<KubernetesResourceTable> lookupTable(KubernetesTableHandle tableHandle)
+    public Optional<ResourceTable> lookupTable(KubernetesTableHandle tableHandle)
     {
-        return lookupTable(tableHandle.schemaTableName());
+        return tableHandle.resourceTableHandle().map(h -> this.tables.get(h.schemaTableName()));
     }
 
-    public Optional<KubernetesResourceTable> lookupTable(SchemaTableName schemaTableName)
+    public Optional<ResourceTable> lookupTable(SchemaTableName schemaTableName)
     {
         return Optional.ofNullable(this.tables.get(schemaTableName));
     }
 
-    public KubernetesResourceTable lookupTableOrThrow(KubernetesTableHandle tableHandle)
+    public ResourceTable lookupTableOrThrow(ResourceTableHandle tableHandle)
     {
-        return this.lookupTableOrThrow(tableHandle.schemaTableName());
+        return lookupTableOrThrow(tableHandle.schemaTableName());
     }
 
-    public KubernetesResourceTable lookupTableOrThrow(SchemaTableName schemaTableName)
+    public ResourceTable lookupTableOrThrow(SchemaTableName schemaTableName)
     {
         return this.lookupTable(schemaTableName)
                 .orElseThrow(() -> new TrinoException(TABLE_NOT_FOUND, "Table not found: %s".formatted(schemaTableName)));
     }
 
-    public ImmutableMap<SchemaTableName, KubernetesResourceTable> loadTables()
+    public ImmutableMap<SchemaTableName, ResourceTable> loadTables()
 
     {
         try {
@@ -92,22 +93,16 @@ public class KubernetesClient
 
             var response = discovery.findAll();
 
-            /*response
-                    .stream()
-                    .map(KubernetesResourceTable::from)
-                    .
-                    .collect(groupingBy(t -> t.schemaTableName()))*/
-
             return response.stream()
-                    .map(KubernetesResourceTable::from)
-                    .collect(toImmutableMap(KubernetesResourceTable::schemaTableName, v -> v));
+                    .map(ResourceTable::from)
+                    .collect(toImmutableMap(ResourceTable::schemaTableName, v -> v));
         }
         catch (ApiException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public RecordSet execute(KubernetesTableHandle handle, List<KubernetesColumnHandle> columnHandles)
+    public RecordSet execute(ResourceTableHandle handle, List<KubernetesColumnHandle> columnHandles)
     {
         var table = this.lookupTableOrThrow(handle);
 
@@ -116,7 +111,7 @@ public class KubernetesClient
                 .collect(toImmutableList());
 
         var columnMetadata = columns.stream()
-                .map(KubernetesResourceTableColumn::toColumnMetadata)
+                .map(ResourceTableColumn::toColumnMetadata)
                 .toList();
 
         var resource = table.resource();

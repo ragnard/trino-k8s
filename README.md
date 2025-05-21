@@ -104,8 +104,7 @@ Function signature:
 system.logs(
   namespace,           -- required
   selector,            -- required: NAME or TYPE/NAME like deployment/nginx
-  container,           -- optional: defaults to all containers in pod
-  limit                -- optional: number of log lines to retrieve, defaults to all
+  container            -- optional: defaults to all containers in pod
 )
 ```
 
@@ -118,12 +117,12 @@ from
   table(
     mycluster.system.logs(
       namespace => 'kube-system',
-      selector => 'etcd-kind-control-plane',
-      limit => 10
+      selector => 'etcd-kind-control-plane'
     )
   )
 order by
   timestamp desc
+limit 100
 ```
 
 ## Examples
@@ -264,12 +263,12 @@ select * from
   table(
     kubernetes.system.logs(
       namespace => 'kube-system',
-      selector => 'etcd-kind-control-plane',
-      limit => 10
+      selector => 'etcd-kind-control-plane'
     )
   )
 order by
   timestamp desc
+limit 10
 ```
 
 ```

@@ -14,7 +14,10 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.client.KubernetesClient;
+import com.github.ragnard.trino.k8s.client.KubernetesResources;
+import com.github.ragnard.trino.k8s.client.KubernetesLogs;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunctionSplit;
+import com.github.ragnard.trino.k8s.resources.ResourceTableSplit;
 import com.google.inject.Inject;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorRecordSetProvider;
@@ -29,12 +32,16 @@ import java.util.List;
 public class KubernetesRecordSetProvider
         implements ConnectorRecordSetProvider
 {
-    private final KubernetesClient kubernetesClient;
+    private final KubernetesResources kubernetesResources;
+    private final KubernetesLogs kubernetesLogs;
 
     @Inject
-    public KubernetesRecordSetProvider(KubernetesClient kubernetesClient)
+    public KubernetesRecordSetProvider(
+            KubernetesResources kubernetesResources,
+            KubernetesLogs kubernetesLogs)
     {
-        this.kubernetesClient = kubernetesClient;
+        this.kubernetesResources = kubernetesResources;
+        this.kubernetesLogs = kubernetesLogs;
     }
 
     @Override
@@ -45,8 +52,23 @@ public class KubernetesRecordSetProvider
             ConnectorTableHandle tableHandle,
             List<? extends ColumnHandle> columnHandles)
     {
-        return kubernetesClient.execute(
-                (KubernetesTableHandle) tableHandle,
-                columnHandles.stream().map(h -> (KubernetesColumnHandle) h).toList());
+        @SuppressWarnings("unchecked")
+        var columns = (List<KubernetesColumnHandle>) columnHandles;
+
+        return switch (connectorSplit) {
+            case ResourceTableSplit s -> getRecordSet(s, columns);
+            case PodLogsTableFunctionSplit s -> getRecordSet(s, columns);
+            default -> throw new IllegalStateException("Unexpected value: " + connectorSplit);
+        };
+    }
+
+    private RecordSet getRecordSet(ResourceTableSplit split, List<KubernetesColumnHandle> columnHandles)
+    {
+        return kubernetesResources.execute(split.tableHandle(), columnHandles);
+    }
+
+    private RecordSet getRecordSet(PodLogsTableFunctionSplit split, List<KubernetesColumnHandle> columnHandles)
+    {
+        return kubernetesLogs.getLogs(split, columnHandles);
     }
 }

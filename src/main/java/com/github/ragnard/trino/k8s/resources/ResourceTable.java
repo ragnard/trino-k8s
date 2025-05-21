@@ -11,11 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.tables;
+package com.github.ragnard.trino.k8s.resources;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
 import com.github.ragnard.trino.k8s.KubernetesTableHandle;
-import com.github.ragnard.trino.k8s.client.KubernetesClient;
+import com.github.ragnard.trino.k8s.client.KubernetesResources;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.kubernetes.client.Discovery;
@@ -32,53 +32,53 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.Objects.requireNonNull;
 
-public record KubernetesResourceTable(
+public record ResourceTable(
         Discovery.APIResource resource,
         SchemaTableName schemaTableName,
-        ImmutableMap<String, KubernetesResourceTableColumn> columns)
+        ImmutableMap<String, ResourceTableColumn> columns)
 {
-    public static KubernetesResourceTable from(Discovery.APIResource resource)
+    public static ResourceTable from(Discovery.APIResource resource)
     {
-        return new KubernetesResourceTable(resource, createSchemaTableName(resource), createColumns(resource));
+        return new ResourceTable(resource, createSchemaTableName(resource), createColumns(resource));
     }
 
     private static SchemaTableName createSchemaTableName(Discovery.APIResource resource)
     {
         if (isNullOrEmpty(resource.getGroup())) {
-            return new SchemaTableName(KubernetesClient.RESOURCES_SCHEMA, resource.getResourcePlural());
+            return new SchemaTableName(KubernetesResources.RESOURCES_SCHEMA, resource.getResourcePlural());
         }
         else {
-            return new SchemaTableName(KubernetesClient.RESOURCES_SCHEMA, resource.getGroup() + "." + resource.getResourcePlural());
+            return new SchemaTableName(KubernetesResources.RESOURCES_SCHEMA, resource.getGroup() + "." + resource.getResourcePlural());
         }
     }
 
-    private static ImmutableMap<String, KubernetesResourceTableColumn> createColumns(Discovery.APIResource resource)
+    private static ImmutableMap<String, ResourceTableColumn> createColumns(Discovery.APIResource resource)
     {
-        return Stream.of(KubernetesResourceTableColumns.KIND,
-                        KubernetesResourceTableColumns.GROUP,
-                        KubernetesResourceTableColumns.API_VERSION,
-                        KubernetesResourceTableColumns.NAME,
-                        KubernetesResourceTableColumns.NAMESPACE,
-                        KubernetesResourceTableColumns.LABELS,
-                        KubernetesResourceTableColumns.ANNOTATIONS,
-                        KubernetesResourceTableColumns.CLUSTER_NAME,
-                        KubernetesResourceTableColumns.CREATION_TIMESTAMP,
-                        KubernetesResourceTableColumns.DELETION_GRACE_PERIOD_SECONDS,
-                        KubernetesResourceTableColumns.DELETION_TIMESTAMP,
-                        KubernetesResourceTableColumns.FINALIZERS,
-                        KubernetesResourceTableColumns.RESOURCE_VERSION,
-                        KubernetesResourceTableColumns.SELF_LINK,
-                        KubernetesResourceTableColumns.UID,
-                        KubernetesResourceTableColumns.METADATA,
-                        KubernetesResourceTableColumns.RESOURCE)
+        return Stream.of(ResourceTableColumns.KIND,
+                        ResourceTableColumns.GROUP,
+                        ResourceTableColumns.API_VERSION,
+                        ResourceTableColumns.NAME,
+                        ResourceTableColumns.NAMESPACE,
+                        ResourceTableColumns.LABELS,
+                        ResourceTableColumns.ANNOTATIONS,
+                        ResourceTableColumns.CLUSTER_NAME,
+                        ResourceTableColumns.CREATION_TIMESTAMP,
+                        ResourceTableColumns.DELETION_GRACE_PERIOD_SECONDS,
+                        ResourceTableColumns.DELETION_TIMESTAMP,
+                        ResourceTableColumns.FINALIZERS,
+                        ResourceTableColumns.RESOURCE_VERSION,
+                        ResourceTableColumns.SELF_LINK,
+                        ResourceTableColumns.UID,
+                        ResourceTableColumns.METADATA,
+                        ResourceTableColumns.RESOURCE)
                 .collect(toImmutableMap(
-                        KubernetesResourceTableColumn::name,
+                        ResourceTableColumn::name,
                         c -> c));
     }
 
     public KubernetesTableHandle toTableHandle()
     {
-        return new KubernetesTableHandle(schemaTableName());
+        return new ResourceTableHandle(schemaTableName());
     }
 
     public ConnectorTableMetadata getTableMetadata()
@@ -88,7 +88,7 @@ public record KubernetesResourceTable(
                 getColumnMetadata());
     }
 
-    public ImmutableList<KubernetesResourceTableColumn> getColumns()
+    public ImmutableList<ResourceTableColumn> getColumns()
     {
         return columns.values().asList();
     }
@@ -97,7 +97,7 @@ public record KubernetesResourceTable(
     {
         return columns.values()
                 .stream()
-                .map(KubernetesResourceTableColumn::toColumnMetadata)
+                .map(ResourceTableColumn::toColumnMetadata)
                 .collect(toImmutableList());
     }
 
@@ -115,7 +115,7 @@ public record KubernetesResourceTable(
         return requireNonNull(columns.get(columnHandle.name())).toColumnMetadata();
     }
 
-    public KubernetesResourceTableColumn lookupColumn(KubernetesColumnHandle columnHandle)
+    public ResourceTableColumn lookupColumn(KubernetesColumnHandle columnHandle)
     {
         return this.columns.get(columnHandle.name());
     }

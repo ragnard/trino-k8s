@@ -14,7 +14,7 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.github.ragnard.trino.k8s.functions.PodLogsTableFunction;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunction;
 import com.google.inject.Inject;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorMetadata;
@@ -24,8 +24,6 @@ import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.function.FunctionProvider;
 import io.trino.spi.function.table.ConnectorTableFunction;
-import io.trino.spi.function.table.ConnectorTableFunctionHandle;
-import io.trino.spi.function.table.TableFunctionProcessorProvider;
 import io.trino.spi.transaction.IsolationLevel;
 
 import java.util.Optional;
@@ -40,19 +38,16 @@ public class KubernetesConnector
     private final KubernetesMetadata metadata;
     private final KubernetesSplitManager splitManager;
     private final KubernetesRecordSetProvider recordSetProvider;
-    private final KubernetesTableFunctionProcessorProvider tableFunctionProcessorProvider;
 
     @Inject
     public KubernetesConnector(
             KubernetesMetadata metadata,
             KubernetesSplitManager splitManager,
-            KubernetesRecordSetProvider recordSetProvider,
-            KubernetesTableFunctionProcessorProvider tableFunctionProcessorProvider)
+            KubernetesRecordSetProvider recordSetProvider)
     {
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
-        this.tableFunctionProcessorProvider = requireNonNull(tableFunctionProcessorProvider, "tableFunctionProcessorProvider is null");
     }
 
     @Override
@@ -83,12 +78,6 @@ public class KubernetesConnector
     public Optional<FunctionProvider> getFunctionProvider()
     {
         return Optional.of(this);
-    }
-
-    @Override
-    public TableFunctionProcessorProvider getTableFunctionProcessorProvider(ConnectorTableFunctionHandle functionHandle)
-    {
-        return this.tableFunctionProcessorProvider;
     }
 
     @Override
