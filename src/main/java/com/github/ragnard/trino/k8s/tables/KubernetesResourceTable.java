@@ -78,7 +78,7 @@ public record KubernetesResourceTable(
 
     public KubernetesTableHandle toTableHandle()
     {
-        return new KubernetesTableHandle(schemaTableName());
+        return new KubernetesResourceTableHandle(schemaTableName());
     }
 
     public ConnectorTableMetadata getTableMetadata()

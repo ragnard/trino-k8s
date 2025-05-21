@@ -14,42 +14,43 @@
 
 package com.github.ragnard.trino.k8s;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.airlift.slice.SizeOf;
-import io.trino.spi.connector.ColumnHandle;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.github.ragnard.trino.k8s.logs.PodLogsTableFunctionHandle;
+import com.github.ragnard.trino.k8s.tables.KubernetesResourceTableHandle;
 import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.SchemaTableName;
-import io.trino.spi.predicate.TupleDomain;
+import io.trino.spi.connector.Constraint;
+import io.trino.spi.connector.ConstraintApplicationResult;
 
+import java.util.Optional;
 import java.util.OptionalInt;
 
-public record KubernetesTableHandle(
-        @JsonProperty SchemaTableName schemaTableName,
-        @JsonProperty TupleDomain<ColumnHandle> constraint,
-        @JsonProperty OptionalInt limit)
-        implements ConnectorTableHandle
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = KubernetesResourceTableHandle.class, name = "ResourceTable"),
+        @JsonSubTypes.Type(value = PodLogsTableFunctionHandle.class, name = "PodLogs"),
+})
+public interface KubernetesTableHandle
+        extends ConnectorTableHandle
 {
-    private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesTableHandle.class);
+    OptionalInt limit();
 
-    public KubernetesTableHandle(SchemaTableName schemaTableName)
+    KubernetesTableHandle withLimit(int limit);
+
+    default long getRetainedSizeInBytes()
     {
-        this(schemaTableName, TupleDomain.all(), OptionalInt.empty());
+        return 0;
     }
 
-    public KubernetesTableHandle withConstraint(TupleDomain<ColumnHandle> newConstraint)
+    default Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(Constraint constraint)
     {
-        return new KubernetesTableHandle(schemaTableName, newConstraint, limit);
+        return Optional.empty();
     }
 
-    public KubernetesTableHandle withLimit(int newLimit)
+    default Optional<KubernetesResourceTableHandle> resourceTableHandle()
     {
-        return new KubernetesTableHandle(schemaTableName, constraint, OptionalInt.of(newLimit));
-    }
-
-    public long getRetainedSizeInBytes()
-    {
-        return (long) INSTANCE_SIZE
-                + schemaTableName.getRetainedSizeInBytes()
-                + constraint.getRetainedSizeInBytes(column -> ((KubernetesColumnHandle) column).getRetainedSizeInBytes());
+        return switch (this) {
+            case KubernetesResourceTableHandle h -> Optional.of(h);
+            default -> Optional.empty();
+        };
     }
 }
