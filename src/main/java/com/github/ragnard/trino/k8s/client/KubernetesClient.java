@@ -14,6 +14,7 @@
 package com.github.ragnard.trino.k8s.client;
 
 import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
+import com.github.ragnard.trino.k8s.tables.KubernetesResourceTableHandle;
 import com.github.ragnard.trino.k8s.KubernetesTableHandle;
 import com.github.ragnard.trino.k8s.tables.KubernetesResourceTable;
 import com.github.ragnard.trino.k8s.tables.KubernetesResourceTableColumn;
@@ -65,7 +66,7 @@ public class KubernetesClient
 
     public Optional<KubernetesResourceTable> lookupTable(KubernetesTableHandle tableHandle)
     {
-        return lookupTable(tableHandle.schemaTableName());
+        return tableHandle.resourceTableHandle().map(h -> this.tables.get(h.schemaTableName()));
     }
 
     public Optional<KubernetesResourceTable> lookupTable(SchemaTableName schemaTableName)
@@ -73,9 +74,9 @@ public class KubernetesClient
         return Optional.ofNullable(this.tables.get(schemaTableName));
     }
 
-    public KubernetesResourceTable lookupTableOrThrow(KubernetesTableHandle tableHandle)
+    public KubernetesResourceTable lookupTableOrThrow(KubernetesResourceTableHandle tableHandle)
     {
-        return this.lookupTableOrThrow(tableHandle.schemaTableName());
+        return lookupTableOrThrow(tableHandle.schemaTableName());
     }
 
     public KubernetesResourceTable lookupTableOrThrow(SchemaTableName schemaTableName)
@@ -107,7 +108,7 @@ public class KubernetesClient
         }
     }
 
-    public RecordSet execute(KubernetesTableHandle handle, List<KubernetesColumnHandle> columnHandles)
+    public RecordSet execute(KubernetesResourceTableHandle handle, List<KubernetesColumnHandle> columnHandles)
     {
         var table = this.lookupTableOrThrow(handle);
 

@@ -39,7 +39,6 @@ public class KubernetesModule
         binder.bind(KubernetesMetadata.class).in(SINGLETON);
         binder.bind(KubernetesRecordSetProvider.class).in(SINGLETON);
         binder.bind(KubernetesSplitManager.class).in(SINGLETON);
-        binder.bind(KubernetesTableFunctionProcessorProvider.class).in(SINGLETON);
 
         binder.bind(KubernetesClient.class).in(SINGLETON);
         binder.bind(KubernetesLogs.class).in(SINGLETON);

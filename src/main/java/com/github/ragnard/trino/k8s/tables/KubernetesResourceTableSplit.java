@@ -11,23 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s.functions;
+
+package com.github.ragnard.trino.k8s.tables;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.ragnard.trino.k8s.KubernetesSplit;
 import io.airlift.slice.SizeOf;
-import io.trino.spi.connector.ConnectorSplit;
 
-public record PodLogsTableFunctionSplit(
-        @JsonProperty PodLogsTableFunctionHandle function,
-        @JsonProperty String pod,
-        @JsonProperty String container)
-        implements ConnectorSplit
+public record KubernetesResourceTableSplit(
+        @JsonProperty("tableHandle") KubernetesResourceTableHandle tableHandle)
+        implements KubernetesSplit
 {
-    public static final long INSTANCE_SIZE = SizeOf.instanceSize(PodLogsTableFunctionSplit.class);
+    private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesResourceTableSplit.class);
 
     @Override
     public long getRetainedSizeInBytes()
     {
-        return INSTANCE_SIZE + function.getRetainedSizeInBytes();
+        return (long) INSTANCE_SIZE + tableHandle.getRetainedSizeInBytes();
     }
 }

@@ -11,29 +11,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ragnard.trino.k8s;
+package com.github.ragnard.trino.k8s.logs;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.airlift.slice.SizeOf;
+import com.github.ragnard.trino.k8s.KubernetesColumnHandle;
+import com.github.ragnard.trino.k8s.client.KubernetesLogs;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.Type;
 
-public record KubernetesColumnHandle(
-        @JsonProperty("name") String name,
-        @JsonProperty("type") Type type
-)
-        implements ColumnHandle
-{
-    private static final int INSTANCE_SIZE = SizeOf.instanceSize(KubernetesTableHandle.class);
+import java.util.function.Function;
 
-    public long getRetainedSizeInBytes()
+public record PodLogsTableColumn(String name, Type type, ColumnValueFunction value)
+{
+    public interface ColumnValueFunction
+            extends Function<KubernetesLogs.PodLogLine, Object> {}
+
+    public ColumnHandle toColumnHandle()
     {
-        return INSTANCE_SIZE;
+        return new KubernetesColumnHandle(name, type);
     }
 
     public ColumnMetadata toColumnMetadata()
     {
-        return new ColumnMetadata(name, type);
+        return ColumnMetadata.builder()
+                .setName(name)
+                .setType(type).build();
+    }
+
+    public Object getValue(KubernetesLogs.PodLogLine line)
+    {
+        return value.apply(line);
     }
 }
