@@ -21,6 +21,15 @@ build-image: prepare
     echo "Building image: $image"
     docker buildx build --push --build-arg=VERSION=$version -t ${image} .
 
+push-latest-image:
+    #!/usr/bin/env bash
+    version=$(cat VERSION)
+    image="{{image}}:${version}"
+    image_latest="{{image}}:latest"
+    echo "Bumping latest tag: $image -> $image_latest "
+    docker tag $image $image_latest
+    docker push $image_latest
+
 generate-build-version type=version-type:
     #!/usr/bin/env bash
     set -e
@@ -57,8 +66,7 @@ require-build-version:
       exit 1
     fi
 
-#release: commit-version create-release
-release: require-build-version commit-version create-release
+release: require-build-version commit-version push-latest-image create-release
 
 commit-version:
     #!/usr/bin/env bash
@@ -66,9 +74,6 @@ commit-version:
 
     version=$(cat {{version-file-build}})
     echo $version > {{version-file}}
-
-    # git config user.name "${GITHUB_ACTOR:-github-actions}"
-    # git config user.email "${GITHUB_ACTOR:-github-actions}@users.noreply.github.com"
 
     git add {{version-file}}
     git commit -m "[skip ci] Released version ${version}"

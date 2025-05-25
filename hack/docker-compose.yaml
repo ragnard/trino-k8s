@@ -1,6 +1,6 @@
 services:
   trino-server:
-    image: ghcr.io/ragnard/trino-k8s:0.9.4
+    image: ghcr.io/ragnard/trino-k8s:latest
     network_mode: host
     configs:
       - source: kubernetes.properties

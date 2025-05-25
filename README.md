@@ -32,7 +32,7 @@ curl -s https://raw.githubusercontent.com/ragnard/trino-k8s/refs/heads/main/hack
 **2. Connect using trino cli**
 
 ```
-docker run --network=host -it ghcr.io/ragnard/trino-k8s:0.9.4 trino http://127.0.0.1:8080
+docker run --network=host -it ghcr.io/ragnard/trino-k8s trino http://127.0.0.1:8080
 ```
 
 **3. Run some commands**
