@@ -24,11 +24,9 @@ build-image: prepare
 push-latest-image:
     #!/usr/bin/env bash
     version=$(cat VERSION)
-    image="{{image}}:${version}"
     image_latest="{{image}}:latest"
-    echo "Bumping latest tag: $image -> $image_latest "
-    docker tag $image $image_latest
-    docker push $image_latest
+    echo "Bumping latest tag: $image_latest "
+    docker buildx build --push --build-arg=VERSION=$version -t ${image_latest} .
 
 generate-build-version type=version-type:
     #!/usr/bin/env bash
