@@ -8,7 +8,7 @@ A connector plugin for [Trino](https://trino.io) that:
 
 ## Status
 
-Almost ready for use.
+Works for me.
 
 
 ## Quickstart
